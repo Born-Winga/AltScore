@@ -1,6 +1,6 @@
 packages:
   - infra/*
-  - app/*
+  - apps/*
   - tooling/*
   - scripts/*
   - packages/*
