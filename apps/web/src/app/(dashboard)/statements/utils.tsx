@@ -2,11 +2,8 @@ import { Badge } from "@/components/ui/badge"
 import { formatDistanceToNow } from "date-fns"
 import { CheckCircle, Clock, HourglassIcon, StopCircleIcon } from "lucide-react"
 
-import type { SchemaType } from "../../../../../../infra/amplify/data/schema";
 import { cn } from "@/lib/utils";
-export type Document = SchemaType["Document"]['type']
-
-
+import {DocStatus, Document } from "@altscore/gql-types/schema-types"
 // Status badge component
 export function StatusBadge({ status }: { status: Document["status"] }) {
     const statusConfig = {
@@ -16,7 +13,7 @@ export function StatusBadge({ status }: { status: Document["status"] }) {
       SUBMITTED: { color: "bg-gray-100 text-gray-800 border-gray-200", icon: <HourglassIcon className="h-3 w-3 mr-1"/> },
     }
     if(!status){
-      status = "SUBMITTED"
+      status = DocStatus.Submitted
     }
     return (
       <Badge variant="outline" className={cn("font-medium flex items-center", statusConfig[status].color)}>

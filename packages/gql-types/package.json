@@ -1,0 +1,15 @@
+{
+  "name": "@altscore/gql-types",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "private": true,
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "exports": {
+    ".": "./index.ts",
+    "./schema-types": "./graphql.ts"
+  }
+}
