@@ -1,10 +1,10 @@
 {
-	"name": "AltScore",
+	"name": "altscore",
 	"version": "1.0.0",
 	"description": "",
 	"main": "index.js",
 	"scripts": {},
-  "packageManager": "pnpm",
+	"packageManager": "pnpm",
 	"keywords": [],
 	"author": "",
 	"license": "ISC"
