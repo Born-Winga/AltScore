@@ -11,16 +11,21 @@
     "cdk": "cdk"
   },
   "devDependencies": {
+    "@aws-amplify/backend": "^1.15.0",
     "@types/jest": "^29.5.14",
     "@types/node": "22.7.9",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.2.5",
     "aws-cdk": "2.1010.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.3.2",
     "ts-node": "^10.9.2",
     "typescript": "~5.6.3"
   },
   "dependencies": {
+    "@aws-amplify/data-schema": "^1.20.4",
+    "@aws-amplify/data-schema-types": "^1.2.0",
+    "@aws-amplify/graphql-api-construct": "1.20.1",
+    "@aws-amplify/plugin-types": "^1.8.1",
     "aws-cdk-lib": "2.189.0",
-    "constructs": "^10.0.0"
+    "constructs": "^10.4.2"
   }
 }
