@@ -1,0 +1,17 @@
+type Blog
+	@model
+	@auth(rules: [{ allow: owner }, { allow: public, operations: [read] }])
+{
+	title: String!
+	description: String
+	posts: [Post] @hasMany
+}
+
+type Post
+	@model
+	@auth(rules: [{ allow: owner }, { allow: public, operations: [read] }])
+{
+	title: String!
+	content: [String]
+	blog: Blog @belongsTo
+}
