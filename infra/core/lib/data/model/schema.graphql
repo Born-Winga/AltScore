@@ -1,17 +1,103 @@
-type Blog
-	@model
-	@auth(rules: [{ allow: owner }, { allow: public, operations: [read] }])
-{
-	title: String!
-	description: String
-	posts: [Post] @hasMany
+enum DocStatus {
+	PROCESSING
+	REJECTED
+	PROCESSED
+	SUBMITTED
 }
 
-type Post
+enum TransactionDescription {
+	OVERDRAFT
+	LOAN
+	DEPOSIT
+	PAYMENT
+	SAVING
+}
+
+enum TransactionType {
+	CREDIT
+	DEBIT
+}
+
+type User
 	@model
-	@auth(rules: [{ allow: owner }, { allow: public, operations: [read] }])
+	@auth(
+		rules: [
+			{ allow: owner, operations: [create, read, update] }
+			{ allow: private, operations: [read] }
+		]
+	)
 {
-	title: String!
-	content: [String]
-	blog: Blog @belongsTo
+	id: ID!
+	name: String!
+	email: AWSEmail!
+	createdAt: AWSDateTime!
+	updatedAt: AWSDateTime!
+	apiKey: String!
+	status: String! @default(value: "ACTIVE")
+	deleted: Boolean! @default(value: "false")
+	documents: [Document] @hasMany
+}
+
+type Document
+	@model
+	@auth(
+		rules: [
+			{ allow: owner, operations: [create, read, update] }
+			{ allow: private, operations: [read] }
+		]
+	)
+{
+	id: ID!
+	type: String!
+	name: String!
+	issuer: String!
+	password: String
+	userId: ID!
+	user: User @belongsTo(fields: ["userId"])
+	status: DocStatus
+	expiryDate: AWSDateTime
+	createdAt: AWSDateTime!
+	updatedAt: AWSDateTime!
+	summary: AWSJSON
+	hash: String
+	shortId: String!
+	url: String!
+	transactions: [Transaction] @hasMany
+	log: [DocumentLog] @hasMany
+}
+
+type Transaction
+	@model
+	@auth(
+		rules: [
+			{ allow: owner, operations: [create, read, update] }
+			{ allow: private, operations: [read] }
+		]
+	)
+{
+	id: ID!
+	type: TransactionType
+	description: TransactionDescription
+	amount: Float
+	details: String
+	documentId: ID
+	document: Document @belongsTo(fields: ["documentId"])
+	createdAt: AWSDateTime!
+	updatedAt: AWSDateTime!
+}
+
+type DocumentLog
+	@model
+	@auth(
+		rules: [
+			{ allow: owner, operations: [create, read, update] }
+			{ allow: private, operations: [read] }
+		]
+	)
+{
+	id: ID!
+	documentId: ID!
+	document: Document @belongsTo(fields: ["documentId"])
+	createdAt: AWSDateTime!
+	updatedAt: AWSDateTime!
 }
