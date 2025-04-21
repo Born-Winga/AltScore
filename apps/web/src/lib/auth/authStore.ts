@@ -149,7 +149,7 @@ export const useAuthStore = create<ITAuthContext>((set, get) => ({
 			}
 		} catch (error) {
 			toast.error("Signup failed");
-			console.error("Signup Error:", error);
+			console.log("Signup Error:", error);
 			set({ authError: error as AuthError });
 		}
 	},
