@@ -1,14 +1,17 @@
 {
-  "name": "@altscore/gql-types",
+  "name": "@altscore/cdk-outputs",
   "version": "1.0.0",
-  "private": true,
   "description": "",
   "main": "index.js",
+  "private": "true",
   "scripts": {},
   "keywords": [],
   "author": "",
   "license": "ISC",
   "exports": {
     ".": "./index.ts"
+  },
+  "dependencies": {
+   
   }
 }

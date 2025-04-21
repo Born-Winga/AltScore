@@ -211,9 +211,12 @@ importers:
         specifier: ^5.0.3
         version: 5.0.3(@types/react@19.1.2)(immer@9.0.6)(react@19.1.0)(use-sync-external-store@1.5.0(react@19.1.0))
     devDependencies:
+      '@altscore/cdk-outputs':
+        specifier: workspace:*
+        version: link:../../packages/cdk-outputs
       '@altscore/gql-types':
         specifier: workspace:*
-        version: link:../../packages/gql-types
+        version: link:../../packages/aws-types
       '@eslint/eslintrc':
         specifier: ^3
         version: 3.3.1
@@ -294,7 +297,9 @@ importers:
         specifier: ~5.6.3
         version: 5.6.3
 
-  packages/gql-types: {}
+  packages/aws-types: {}
+
+  packages/cdk-outputs: {}
 
 packages:
 
