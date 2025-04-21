@@ -107,7 +107,6 @@ export class AuthStack extends Stack {
 					userPassword: true,
 					userSrp: true,
 				},
-				preventUserExistenceErrors: true,
 			},
 		);
 
