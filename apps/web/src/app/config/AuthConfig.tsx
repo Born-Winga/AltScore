@@ -15,12 +15,26 @@ import {
 import "@aws-amplify/ui-react/styles.css";
 import AltScoreLogo from "@/components/logo";
 import { Button } from "@/components/ui/button";
+import { fetchAuthSession } from "aws-amplify/auth";
 
 // Keep the original Amplify configuration
 Amplify.configure(outputs, {
+	API: {
+		GraphQL: {
+		  headers: async () => {
+			return {
+			  Authorization: await getAuthToken(),
+			};
+		  },
+		},
+	  },
 	ssr: true,
 });
 
+async function getAuthToken() {
+	const session = await fetchAuthSession();
+	return session.tokens?.accessToken.toString();
+  }
 export default function ConfigureAmplifyClientSide({
 	children,
 }: {
