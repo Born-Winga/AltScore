@@ -3,7 +3,7 @@ import { formatDistanceToNow } from "date-fns"
 import { CheckCircle, Clock, HourglassIcon, StopCircleIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils";
-import {DocStatus, Document } from "@altscore/gql-types/schema-types"
+import {DocStatus, type Document } from "@altscore/gql-types"
 // Status badge component
 export function StatusBadge({ status }: { status: Document["status"] }) {
     const statusConfig = {
@@ -13,7 +13,7 @@ export function StatusBadge({ status }: { status: Document["status"] }) {
       SUBMITTED: { color: "bg-gray-100 text-gray-800 border-gray-200", icon: <HourglassIcon className="h-3 w-3 mr-1"/> },
     }
     if(!status){
-      status = DocStatus.Submitted
+      status = DocStatus.SUBMITTED
     }
     return (
       <Badge variant="outline" className={cn("font-medium flex items-center", statusConfig[status].color)}>
