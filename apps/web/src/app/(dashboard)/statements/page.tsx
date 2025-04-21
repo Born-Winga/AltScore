@@ -5,7 +5,7 @@ import { PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { listDocuments } from "./actions";
-import type { Document } from "./utils";
+import type { Document } from "@altscore/gql-types";
 
 export default function HomePage() {
 	const [data, setData] = useState<Document[]>([]);
@@ -13,7 +13,7 @@ export default function HomePage() {
 
 	async function init() {
 		const response = await listDocuments();
-		setData(response?.data ?? []);
+		setData(response ?? []);
 	}
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	useEffect(() => {
