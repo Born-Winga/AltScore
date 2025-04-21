@@ -29,7 +29,7 @@ import {
 } from "@tanstack/react-table";
 import { Search } from "lucide-react";
 import React, { useState } from "react";
-import type { Document } from "./utils";
+import type { Document } from "@altscore/gql-types";
 import { columns } from "./columns";
 
 export function DocumentsTable({
@@ -112,13 +112,10 @@ export function DocumentsTable({
 							<Input
 								placeholder="Search files..."
 								value={
-									(table.getColumn("name")?.getFilterValue() as string) ??
-									""
+									(table.getColumn("name")?.getFilterValue() as string) ?? ""
 								}
 								onChange={(event) =>
-									table
-										.getColumn("name")
-										?.setFilterValue(event.target.value)
+									table.getColumn("name")?.setFilterValue(event.target.value)
 								}
 								className="h-10"
 							/>
@@ -255,7 +252,10 @@ export function DocumentsTable({
 						<Table>
 							<TableHeader>
 								{table.getHeaderGroups().map((headerGroup) => (
-									<TableRow key={headerGroup.id} className="bg-green-50 border border-green-100 py-4">
+									<TableRow
+										key={headerGroup.id}
+										className="bg-green-50 border border-green-100 py-4"
+									>
 										{headerGroup.headers.map((header) => {
 											return (
 												<TableHead key={header.id}>

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { listDocuments } from "./actions";
+import { getDocuments } from "./actions";
 import type { Document } from "@altscore/gql-types";
 
 export default function HomePage() {
@@ -12,8 +12,8 @@ export default function HomePage() {
 	// load the ddocuments
 
 	async function init() {
-		const response = await listDocuments();
-		setData(response ?? []);
+		const response = await getDocuments();
+		setData([...response]);
 	}
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	useEffect(() => {

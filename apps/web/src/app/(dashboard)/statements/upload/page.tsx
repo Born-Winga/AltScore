@@ -1,9 +1,8 @@
 "use client";
-
+import type { Document } from "@altscore/gql-types";
 import type React from "react";
 import { uploadData } from "aws-amplify/storage";
-import { generateClient } from "aws-amplify/data";
-import type { SchemaType } from "../../../../../../../infra/amplify/data/schema"; // Path to your backend resource definition
+import { generateClient } from "aws-amplify/data"; // Path to your backend resource definition
 import ShortUniqueId from "short-unique-id";
 import { toast } from "sonner"; // make sure this import exists
 import { useRef, useState } from "react";
@@ -45,6 +44,7 @@ import { Amplify } from "aws-amplify";
 import { v4 as uuidv4 } from "uuid";
 import { useEffect } from "react";
 import Link from "next/link";
+import { saveDocument } from "../actions";
 
 const banks = [
 	{ name: "KCB", value: "kcb" },
@@ -88,7 +88,7 @@ const fileDbRefSchema = z.object({
 
 export default function AnalysisPage() {
 	const bucket = Amplify.getConfig().Storage?.S3.bucket;
-	const client = generateClient<SchemaType>({
+	const client = generateClient({
 		authMode: "userPool",
 	});
 	console.log();
@@ -219,15 +219,15 @@ export default function AnalysisPage() {
 		record: z.infer<typeof fileDbRefSchema>,
 	) {
 		try {
-			let issuer = "N/A"
-			if(record.type === "mpesa") issuer = "mpesa"
-			if(record.type === "bank"){
-				if(record.bank === "other") issuer = record.custom_bank ?? "N/A"
-				if(record.bank === "bank") issuer = record.bank ?? "N/A"
+			let issuer = "N/A";
+			if (record.type === "mpesa") issuer = "mpesa";
+			if (record.type === "bank") {
+				if (record.bank === "other") issuer = record.custom_bank ?? "N/A";
+				if (record.bank === "bank") issuer = record.bank ?? "N/A";
 			}
-					
+
 			setUploading(true);
-			const { errors, data: doc } = await client.models.Document.create({
+			const payload = {
 				id: uuidv4(),
 				type: record.type,
 				name: record.file_name,
@@ -235,13 +235,10 @@ export default function AnalysisPage() {
 				password: record.password,
 				userId: record.userId,
 				status: "SUBMITTED",
-				createdAt: Date.now(),
-				updatedAt: Date.now(),
 				shortId: uid.rnd(),
-				url: record.url
-			});
-
-			console.log({ errors, doc });
+				url: record.url,
+			} as unknown as Document;
+			await saveDocument(payload);
 		} catch (err) {
 			console.log(err);
 		} finally {
