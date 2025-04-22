@@ -11,7 +11,7 @@ export async function getDocuments() {
             limit: 500,
         }
     })
-    return documents.data.listDocuments.items
+    return documents.data.listDocuments.items as unknown as Document[]
 }
 
 export async function saveDocument(payload: Document) {

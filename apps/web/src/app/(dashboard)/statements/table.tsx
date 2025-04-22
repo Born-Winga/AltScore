@@ -29,7 +29,7 @@ import {
 } from "@tanstack/react-table";
 import { Search } from "lucide-react";
 import React, { useState } from "react";
-import type { Document } from "@altscore/gql-types";
+import { DocStatus, type Document } from "@altscore/gql-types";
 import { columns } from "./columns";
 
 export function DocumentsTable({
@@ -128,7 +128,7 @@ export function DocumentsTable({
 										<Button
 											variant="outline"
 											size="sm"
-											onClick={() => handleStatusFilter("PROCESSED")}
+											onClick={() => handleStatusFilter(DocStatus.PROCESSED)}
 											className={cn(
 												"border-green-200",
 												statusFilter.includes("PROCESSED") &&
@@ -150,7 +150,7 @@ export function DocumentsTable({
 										<Button
 											variant="outline"
 											size="sm"
-											onClick={() => handleStatusFilter("PROCESSING")}
+											onClick={() => handleStatusFilter(DocStatus.PROCESSING)}
 											className={cn(
 												"border-yellow-200",
 												statusFilter.includes("PROCESSING") &&
@@ -172,7 +172,7 @@ export function DocumentsTable({
 										<Button
 											variant="outline"
 											size="sm"
-											onClick={() => handleStatusFilter("REJECTED")}
+											onClick={() => handleStatusFilter(DocStatus.REJECTED)}
 											className={cn(
 												"border-red-200",
 												statusFilter.includes("expired") &&

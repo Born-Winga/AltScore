@@ -1,10 +1,9 @@
 "use client";
 import type { Document } from "@altscore/gql-types";
-import type React from "react";
+import { useRouter } from "next/navigation";
 import { uploadData } from "aws-amplify/storage";
-import { generateClient } from "aws-amplify/data"; // Path to your backend resource definition
 import ShortUniqueId from "short-unique-id";
-import { toast } from "sonner"; // make sure this import exists
+import { toast } from "sonner";
 import { useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,22 +28,17 @@ import { Input } from "@/components/ui/input";
 import {
 	Form,
 	FormControl,
-	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { useFormStatus } from "react-dom";
-import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/lib/auth/authStore";
 import { Amplify } from "aws-amplify";
-// Submit button
-
 import { v4 as uuidv4 } from "uuid";
-import { useEffect } from "react";
 import Link from "next/link";
 import { saveDocument } from "../actions";
+import { cn } from "@/lib/utils";
 
 const banks = [
 	{ name: "KCB", value: "kcb" },
@@ -59,13 +53,8 @@ const banks = [
 	{ name: "Other", value: "other" },
 ];
 
-const uid = new ShortUniqueId({
-	length: 6,
-	dictionary: "hex",
-	shuffle: true,
-});
+const uid = new ShortUniqueId({ length: 6, dictionary: "hex", shuffle: true });
 
-// Schema
 const formSchema = z.object({
 	doc_type: z.string(),
 	bank: z.string().optional(),
@@ -82,22 +71,18 @@ const fileDbRefSchema = z.object({
 	userId: z.string().min(1, "User ID is required"),
 	type: z.string().min(1, "Type is required"),
 	bank: z.string().min(1, "Bank is required"),
-	custom_bank: z.string().optional().nullable(), // use `.optional()` if sometimes omitted
-	password: z.string().optional().nullable(), // optional password
+	custom_bank: z.string().optional().nullable(),
+	password: z.string().optional().nullable(),
 });
 
 export default function AnalysisPage() {
+	const router = useRouter();
 	const bucket = Amplify.getConfig().Storage?.S3.bucket;
-	const client = generateClient({
-		authMode: "userPool",
-	});
-	console.log();
 	const { authUser } = useAuthStore();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
-	const [uploading, setUploading] = useState<boolean>(false);
-	const [fileDbRef, setFileDbRef] = useState<z.infer<typeof fileDbRefSchema>>();
-	const [uploadProgress, setUploadProgress] = useState<number>(0);
+	const [uploading, setUploading] = useState(false);
+	const [uploadProgress, setUploadProgress] = useState(0);
 
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
@@ -114,119 +99,96 @@ export default function AnalysisPage() {
 	const bank = useWatch({ control: form.control, name: "bank" });
 
 	const onSubmit = async (values: z.infer<typeof formSchema>) => {
-		console.log("Form submitted:", values);
-		const path = await handleFileUpload(values.file);
-		const payload = {
-			bank: values.bank,
-			custom_bank: values.custom_bank,
-			password: values.password,
-			file_name: values.file.name,
-			type: values.doc_type,
-			url: path ?? "",
-			userId: authUser?.sub ?? "",
-			shortId: uid.rnd(),
-		} as z.infer<typeof fileDbRefSchema>;
+		try {
+			const path = await handleFileUpload(values.file);
+			if (!path) return;
 
-		await createStatementObject(payload);
-		console.log(payload);
+			const payload = {
+				bank: values.bank,
+				custom_bank: values.custom_bank,
+				password: values.password,
+				file_name: values.file.name,
+				type: values.doc_type,
+				url: path,
+				userId: authUser?.sub ?? "",
+				shortId: uid.rnd(),
+			} as z.infer<typeof fileDbRefSchema>;
+
+			await createStatementObject(payload);
+			router.push("/statements");
+		} catch (error) {
+			toast.error("Submission failed. Please try again.");
+		}
 	};
 
 	const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0];
-
 		if (!file) return;
 
-		// Validate file type
 		if (file.type !== "application/pdf") {
-			console.log("Only PDF");
 			toast.error("Only PDF files are allowed.");
-			event.target.value = ""; // reset input
+			event.target.value = "";
 			return;
 		}
 
-		// Validate file size (20MB max)
-		const maxSizeInBytes = 20 * 1024 * 1024; // 20MB
+		const maxSizeInBytes = 20 * 1024 * 1024;
 		if (file.size > maxSizeInBytes) {
 			toast.error("File size must not exceed 20MB.");
-			console.log("Size Error");
-			event.target.value = ""; // reset input
+			event.target.value = "";
 			return;
 		}
 
-		// If valid, update state and form
 		setSelectedFile(file);
 		form.setValue("file", file, { shouldValidate: true });
 	};
 
-	async function handleFileUpload(file: File) {
-		console.log(file);
-		if (!file) return;
+	const handleFileUpload = async (file: File) => {
+		if (!file || !bucket) return null;
 
-		const file_name = file.name;
-		const file_type = file.type;
-		console.log("Bucket: ", bucket);
-		if (!bucket) {
-			toast.error("Storage Bucket Not Defined");
-			return;
-		}
-
-		console.log("Bucket 0: ", bucket);
 		const key = uuidv4();
 		const path = `private/statements/${key}.pdf`;
 
 		try {
 			setUploading(true);
-
-			console.log("Bucket 1: ", bucket);
 			const uploadTask = await uploadData({
 				data: file,
 				path,
 				options: {
-					bucket: {
-						bucketName: bucket,
-						region: "us-east-1",
-					},
-					contentType: file_type,
+					bucket: { bucketName: bucket, region: "us-east-1" },
+					contentType: file.type,
 					onProgress: ({ transferredBytes, totalBytes }) => {
 						if (totalBytes) {
-							const percent = Math.round((transferredBytes / totalBytes) * 100);
-							console.log("Progress: ", percent);
-							setUploadProgress(percent);
+							setUploadProgress(
+								Math.round((transferredBytes / totalBytes) * 100),
+							);
 						}
 					},
-					metadata: {
-						name: file_name,
-						userId: authUser?.sub ?? "",
-					},
+					metadata: { name: file.name, userId: authUser?.sub ?? "" },
 				},
 			}).result;
 
-			toast.success("Upload completed successfully");
-			console.log("Uploaded path:", uploadTask.path);
-
-			// build dynamodb object
 			return uploadTask.path;
-		} catch (err) {
+		} catch (error) {
 			toast.error("Upload failed");
-			console.error("Upload error:", err);
+			throw error;
 		} finally {
-			console.log("Bucket 2: ", bucket);
 			setUploading(false);
+			setUploadProgress(0);
 		}
-	}
+	};
 
-	async function createStatementObject(
+	const createStatementObject = async (
 		record: z.infer<typeof fileDbRefSchema>,
-	) {
+	) => {
 		try {
 			let issuer = "N/A";
-			if (record.type === "mpesa") issuer = "mpesa";
-			if (record.type === "bank") {
-				if (record.bank === "other") issuer = record.custom_bank ?? "N/A";
-				if (record.bank === "bank") issuer = record.bank ?? "N/A";
+			if (record.type === "mpesa") {
+				issuer = "mpesa";
+			} else if (record.type === "bank") {
+				issuer =
+					record.bank === "other" ? (record.custom_bank ?? "N/A") : record.bank;
 			}
 
-			setUploading(true);
 			const payload = {
 				id: uuidv4(),
 				type: record.type,
@@ -238,41 +200,35 @@ export default function AnalysisPage() {
 				shortId: uid.rnd(),
 				url: record.url,
 			} as unknown as Document;
-			await saveDocument(payload);
-		} catch (err) {
-			console.log(err);
-		} finally {
-			setUploading(false);
-		}
-	}
 
-	useEffect(() => {
-		const bucket = Amplify.getConfig().Storage?.S3.bucket;
-		console.log("BUCKO: ", bucket);
-	}, []);
+			await saveDocument(payload);
+			toast.success("Document submitted successfully");
+		} catch (error) {
+			toast.error("Failed to save document");
+			throw error;
+		}
+	};
+
 	return (
 		<div className="container mx-auto py-8 px-4 max-w-3xl">
-			<div className="container mx-auto py-8 px-4 max-w-3xl">
-				<div className="flex items-center mb-8">
-					<Link href="/">
-						<Button variant="ghost" size="sm" className="mr-4">
-							<ArrowLeft className="mr-2 h-4 w-4" />
-							Back to Documents
-						</Button>
-					</Link>
-					<h1 className="text-2xl font-bold">Upload Document</h1>
-				</div>
+			<div className="flex items-center mb-8">
+				<Link href="/">
+					<Button variant="ghost" size="sm" className="mr-4">
+						<ArrowLeft className="mr-2 h-4 w-4" />
+						Back to Documents
+					</Button>
+				</Link>
+				<h1 className="text-2xl font-bold">Upload Document</h1>
 			</div>
 
 			<Card className="shadow-lg rounded-xl w-full">
 				<CardHeader className="pb-2">
 					<CardTitle>Upload Statement</CardTitle>
-					{!uploading && (
-						<CardDescription>
-							Upload a PDF M-Pesa or Bank statement for automated analysis.
-						</CardDescription>
-					)}
-					{uploading && <CardDescription>Uploading Statement.</CardDescription>}
+					<CardDescription>
+						{uploading
+							? "Uploading Statement."
+							: "Upload a PDF M-Pesa or Bank statement for automated analysis."}
+					</CardDescription>
 				</CardHeader>
 
 				<CardContent className="w-full">
@@ -281,7 +237,6 @@ export default function AnalysisPage() {
 							onSubmit={form.handleSubmit(onSubmit)}
 							className="space-y-6 w-full"
 						>
-							{/* Document Type */}
 							<FormField
 								control={form.control}
 								name="doc_type"
@@ -290,7 +245,7 @@ export default function AnalysisPage() {
 										<FormLabel>Statement Type</FormLabel>
 										<Select
 											onValueChange={field.onChange}
-											defaultValue={field.value}
+											value={field.value}
 											disabled={uploading}
 										>
 											<FormControl className="w-full">
@@ -308,7 +263,6 @@ export default function AnalysisPage() {
 								)}
 							/>
 
-							{/* Bank Selection */}
 							{docType === "bank" && (
 								<FormField
 									control={form.control}
@@ -318,11 +272,11 @@ export default function AnalysisPage() {
 											<FormLabel>Select Bank</FormLabel>
 											<Select
 												onValueChange={field.onChange}
-												defaultValue={field.value}
+												value={field.value}
 												disabled={uploading}
 											>
 												<FormControl className="w-full">
-													<SelectTrigger disabled={uploading}>
+													<SelectTrigger>
 														<SelectValue placeholder="Select your bank" />
 													</SelectTrigger>
 												</FormControl>
@@ -340,7 +294,6 @@ export default function AnalysisPage() {
 								/>
 							)}
 
-							{/* Custom Bank Field */}
 							{docType === "bank" && bank === "other" && (
 								<FormField
 									control={form.control}
@@ -348,11 +301,12 @@ export default function AnalysisPage() {
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel>Your Bank</FormLabel>
-											<FormControl className="w-full">
+											<FormControl>
 												<Input
 													disabled={uploading}
 													placeholder="Enter your bank name"
 													{...field}
+													value={field.value ?? ""}
 												/>
 											</FormControl>
 											<FormMessage />
@@ -361,7 +315,6 @@ export default function AnalysisPage() {
 								/>
 							)}
 
-							{/* File Upload */}
 							<FormField
 								control={form.control}
 								name="file"
@@ -375,9 +328,6 @@ export default function AnalysisPage() {
 													? "border-green-400 bg-green-50"
 													: "border-gray-200 hover:border-green-300 hover:bg-green-50",
 											)}
-											// onClick={() =>
-											// 	!selectedFile && fileInputRef.current?.click()
-											// }
 										>
 											{selectedFile ? (
 												<>
@@ -395,9 +345,7 @@ export default function AnalysisPage() {
 														disabled={uploading}
 														onClick={() => {
 															setSelectedFile(null);
-															//@ts-expect-error
-															form.setValue("file", undefined);
-															fileInputRef.current?.click();
+															form.resetField("file");
 														}}
 													>
 														Clear
@@ -407,7 +355,7 @@ export default function AnalysisPage() {
 												<>
 													<Upload className="mx-auto h-10 w-10 text-gray-400" />
 													<p className="text-sm text-gray-500 mb-4">
-														PDF only (Max 10MB)
+														PDF only (Max 20MB)
 													</p>
 													<Button
 														disabled={uploading}
@@ -432,11 +380,12 @@ export default function AnalysisPage() {
 									</FormItem>
 								)}
 							/>
-							{uploadProgress > 0 && uploadProgress < 100 && (
+
+							{uploadProgress > 0 && (
 								<div className="mt-6 mb-2 w-full">
 									<div className="flex items-center justify-between mb-2">
 										<span className="text-sm font-medium text-green-700">
-											Uploading document
+											Upload progress
 										</span>
 										<span className="text-sm font-medium text-green-700">
 											{uploadProgress}%
@@ -445,27 +394,14 @@ export default function AnalysisPage() {
 									<div className="relative">
 										<div className="h-2 w-full bg-green-100 rounded-full overflow-hidden">
 											<div
-												className="h-full bg-green-500 rounded-full transition-all duration-300 ease-in-out"
+												className="h-full bg-green-500 rounded-full transition-all duration-300"
 												style={{ width: `${uploadProgress}%` }}
 											/>
 										</div>
-										<div
-											className="absolute -top-1 transition-all duration-300 ease-in-out"
-											style={{ left: `${uploadProgress}%` }}
-										>
-											<div className="w-4 h-4 bg-white border-2 border-green-500 rounded-full shadow-md transform -translate-x-1/2" />
-										</div>
 									</div>
-									<p className="text-xs text-gray-500 mt-2 italic">
-										{uploadProgress < 30
-											? "Starting upload..."
-											: uploadProgress < 70
-												? "Processing your document..."
-												: "Almost done..."}
-									</p>
 								</div>
 							)}
-							{/* Password */}
+
 							<FormField
 								control={form.control}
 								name="password"
@@ -484,7 +420,7 @@ export default function AnalysisPage() {
 								)}
 							/>
 
-							<div className="flex justify-end mt-8">
+							<div className="flex justify-end">
 								<Button
 									type="submit"
 									className="bg-green-500 hover:bg-green-600 text-white"
