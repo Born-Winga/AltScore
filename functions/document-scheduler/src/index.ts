@@ -102,15 +102,12 @@ const extractTextFromBuffer = (buffer: Buffer): Promise<string> => {
 
 		new PdfReader().parseBuffer(buffer, (err, item) => {
 			if (err) {
-				console.log("Here 1");
 				return reject(err);
 			}
 			if (!item) {
-				console.log("Here 2");
 				return resolve(textChunks.join(" "));
 			}
 			if (item.text) {
-				console.log("Here 3");
 				textChunks.push(item.text);
 			}
 		});
@@ -118,5 +115,3 @@ const extractTextFromBuffer = (buffer: Buffer): Promise<string> => {
 		return textChunks;
 	});
 };
-
-const getFileRecord = async (id: string) => {};

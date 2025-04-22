@@ -48,7 +48,7 @@ export default function HomePage() {
               View Reports
             </Button>
           </Link>
-          <Link href="/upload">
+          <Link href="/statements/upload">
             <Button className="bg-green-500 hover:bg-green-600 text-white">
               <PlusCircle className="mr-2 h-4 w-4" />
               Upload Document
@@ -81,7 +81,7 @@ export default function HomePage() {
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-12 text-center">
           <h3 className="text-lg font-medium text-gray-700 mb-2">No documents found</h3>
           <p className="text-gray-500 mb-6">Upload your first document to get started</p>
-          <Link href="/upload">
+          <Link href="/statements/upload">
             <Button className="bg-green-500 hover:bg-green-600 text-white">
               <PlusCircle className="mr-2 h-4 w-4" />
               Upload Document

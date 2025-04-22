@@ -4,7 +4,7 @@ export const appName = ""
 export const envName = ""
 export const stageName = ""
 const UserpoolOutputs = cdk_outputs["AltScore-AuthStack"];
-const AppysncOutputs = cdk_outputs["AltScore-AppSycnStack"];
+const AppysncOutputs = cdk_outputs["AltScore-AppSyncStack"];
 const S3Outputs = cdk_outputs["AltScore-S3Stack"];
 
 export const outputs = {
