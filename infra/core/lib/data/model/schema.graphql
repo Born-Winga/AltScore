@@ -1,3 +1,8 @@
+schema {
+	query: Query
+	mutation: Mutation
+}
+
 enum DocStatus {
 	PROCESSING
 	REJECTED
@@ -18,42 +23,26 @@ enum TransactionType {
 	DEBIT
 }
 
-type User
-	@model
-	@auth(
-		rules: [
-			{ allow: owner, operations: [create, read, update] }
-			{ allow: private, operations: [read] }
-		]
-	)
-{
+type User @aws_iam @aws_cognito_user_pools @aws_api_key {
 	id: ID!
 	name: String!
 	email: AWSEmail!
 	createdAt: AWSDateTime!
 	updatedAt: AWSDateTime!
 	apiKey: String!
-	status: String! @default(value: "ACTIVE")
-	deleted: Boolean! @default(value: "false")
-	documents: [Document] @hasMany
+	status: String!
+	deleted: Boolean!
+	documents: [Document]
 }
 
-type Document
-	@model
-	@auth(
-		rules: [
-			{ allow: owner, operations: [create, read, update] }
-			{ allow: private, operations: [read] }
-		]
-	)
-{
+type Document @aws_iam @aws_cognito_user_pools @aws_api_key {
 	id: ID!
 	type: String!
 	name: String!
 	issuer: String!
 	password: String
 	userId: ID!
-	user: User @belongsTo(fields: ["userId"])
+	user: User
 	status: DocStatus
 	expiryDate: AWSDateTime
 	createdAt: AWSDateTime!
@@ -62,42 +51,131 @@ type Document
 	hash: String
 	shortId: String!
 	url: String!
-	transactions: [Transaction] @hasMany
-	log: [DocumentLog] @hasMany
+	transactions: [Transaction]
+	log: [DocumentLog]
+	deleted: Boolean!
 }
 
-type Transaction
-	@model
-	@auth(
-		rules: [
-			{ allow: owner, operations: [create, read, update] }
-			{ allow: private, operations: [read] }
-		]
-	)
-{
+type Transaction @aws_iam @aws_cognito_user_pools @aws_api_key {
 	id: ID!
 	type: TransactionType
 	description: TransactionDescription
 	amount: Float
 	details: String
 	documentId: ID
-	document: Document @belongsTo(fields: ["documentId"])
+	document: Document
 	createdAt: AWSDateTime!
 	updatedAt: AWSDateTime!
+	deleted: Boolean!
 }
 
-type DocumentLog
-	@model
-	@auth(
-		rules: [
-			{ allow: owner, operations: [create, read, update] }
-			{ allow: private, operations: [read] }
-		]
-	)
-{
+type DocumentLog @aws_iam @aws_cognito_user_pools @aws_api_key {
 	id: ID!
 	documentId: ID!
-	document: Document @belongsTo(fields: ["documentId"])
+	document: Document
 	createdAt: AWSDateTime!
 	updatedAt: AWSDateTime!
+	log: String
+	deleted: Boolean
+}
+
+input DocumentFilter {
+	status: DocStatus
+	issuer: String
+	type: String
+}
+
+type Query {
+	getUser(id: ID!): User @aws_iam @aws_cognito_user_pools @aws_api_key
+	getDocument(id: ID!): Document @aws_iam @aws_cognito_user_pools @aws_api_key
+	listDocumentsByUser(userId: ID!): [Document] @aws_iam @aws_cognito_user_pools
+	getTransaction(id: ID!): Transaction
+		@aws_iam
+		@aws_cognito_user_pools
+		@aws_api_key
+
+	getDocumentLog(id: ID!): DocumentLog @aws_iam @aws_cognito_user_pools
+	listUsers: [User] @aws_iam @aws_cognito_user_pools @aws_api_key
+	
+	listDocuments(
+		filter: DocumentFilter
+		pagination: PaginationInput
+	): PaginatedResult @aws_iam @aws_cognito_user_pools @aws_api_key
+
+	listTransactions: [Transaction] @aws_iam @aws_cognito_user_pools @aws_api_key
+	listDocumentLogs: [DocumentLog] @aws_iam @aws_cognito_user_pools
+}
+
+type Mutation {
+	createUser(input: CreateUserInput!): User @aws_cognito_user_pools
+	updateUser(input: UpdateUserInput!): User @aws_cognito_user_pools
+	createDocument(input: CreateDocumentInput!): Document @aws_cognito_user_pools
+	updateDocument(input: UpdateDocumentInput!): Document
+		@aws_iam
+		@aws_cognito_user_pools
+
+	createTransaction(input: CreateTransactionInput!): Transaction
+		@aws_cognito_user_pools
+
+	createDocumentLog(input: CreateDocumentLogInput!): DocumentLog
+		@aws_iam
+		@aws_cognito_user_pools
+}
+
+# Input types
+input CreateUserInput {
+	name: String!
+	email: AWSEmail!
+	apiKey: String!
+}
+
+input UpdateUserInput {
+	id: ID!
+	name: String
+	email: AWSEmail
+	status: String
+	deleted: Boolean
+}
+
+input CreateDocumentInput {
+	type: String!
+	name: String!
+	issuer: String!
+	password: String
+	userId: ID!
+	status: DocStatus
+	expiryDate: AWSDateTime
+	summary: AWSJSON
+	hash: String
+	shortId: String!
+	url: String!
+}
+
+input UpdateDocumentInput {
+	id: ID!
+	status: DocStatus
+	password: String
+	summary: AWSJSON
+}
+
+input CreateTransactionInput {
+	type: TransactionType!
+	description: TransactionDescription!
+	amount: Float!
+	details: String!
+	documentId: ID!
+}
+
+input CreateDocumentLogInput {
+	documentId: ID!
+}
+
+input PaginationInput {
+	limit: Int
+	nextToken: String
+}
+
+type PaginatedResult {
+	items: [Any]
+	nextToken: String
 }

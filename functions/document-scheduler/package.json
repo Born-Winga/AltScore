@@ -22,6 +22,7 @@
 		"esbuild": "^0.25.2",
 		"pdfreader": "^3.0.7",
 		"@altscore/cdk-outputs": "workspace:*",
-		"@altscore/gql-types": "workspace:*"
+		"@altscore/gql-types": "workspace:*",
+		"@altscore/gql-client": "workspace:*"
 	}
 }

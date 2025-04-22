@@ -1,0 +1,26 @@
+{
+  "name": "@altscore/gql-client",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "private": true,
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@altscore/gql-types": "workspace:*",
+    "@altscore/cdk-outputs": "workspace:*",
+    "node-fetch": "^3.2.3",
+    "@aws-crypto/sha256-js": "^2.0.1",
+    "@aws-sdk/credential-provider-node": "^3.76.0",
+    "@aws-sdk/protocol-http": "^3.58.0",
+    "@aws-sdk/signature-v4": "^3.58.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.92"
+  },
+  "exports": {
+    ".": "./index.ts"
+  }
+}
