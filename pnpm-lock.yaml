@@ -256,6 +256,12 @@ importers:
 
   functions/document-scheduler:
     dependencies:
+      '@altscore/cdk-outputs':
+        specifier: workspace:*
+        version: link:../../packages/cdk-outputs
+      '@altscore/gql-types':
+        specifier: workspace:*
+        version: link:../../packages/aws-types
       '@aws-sdk/client-appsync':
         specifier: ^3.787.0
         version: 3.787.0

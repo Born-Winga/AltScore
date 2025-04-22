@@ -1,0 +1,22 @@
+{
+	"compilerOptions": {
+		"preserveConstEnums": true,
+		"sourceMap": false,
+		"isolatedModules": true,
+		"outDir": "./dist",
+		"allowSyntheticDefaultImports": true,
+		"target": "ESNext",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"allowImportingTsExtensions": true,
+		"customConditions": ["module"],
+		"allowArbitraryExtensions": true,
+		"noEmit": true,
+		"verbatimModuleSyntax": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"strict": true,
+		"skipLibCheck": true
+	},
+	"exclude": ["node_modules"]
+}
