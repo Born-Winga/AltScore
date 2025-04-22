@@ -7,18 +7,15 @@ import {
     Code,
     type Runtime,
     StartingPosition,
-    MetricType,
+    MetricType
 } from "aws-cdk-lib/aws-lambda";
 import { Duration, Stack } from "aws-cdk-lib";
 import type { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import type { Table } from "aws-cdk-lib/aws-dynamodb";
 import type { Queue } from "aws-cdk-lib/aws-sqs";
-import {
-    DynamoEventSource,
-    SqsEventSource,
-} from "aws-cdk-lib/aws-lambda-event-sources";
+import { DynamoEventSource, SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 
-export interface BaseFunctionConstructProps {
+interface BaseFunctionConstructProps {
     functionName: string;
     timeoutSeconds?: number;
     memorySize?: number;
@@ -26,116 +23,117 @@ export interface BaseFunctionConstructProps {
     subscriptions?: Table[];
     envs?: Record<string, string>;
     queues?: Queue[];
+    appName: string;
+    envName: string;
 }
 
-export interface RegularLambdaConstructProps
-    extends BaseFunctionConstructProps {
+interface RegularLambdaConstructProps extends BaseFunctionConstructProps {
     sourcePath: string;
     runtime: Runtime;
     handler: string;
 }
 
-export interface DockerLambdaConstructProps extends BaseFunctionConstructProps {
+interface DockerLambdaConstructProps extends BaseFunctionConstructProps {
     sourcePath: string;
     architecture?: Architecture;
 }
 
-export class DockerLambdaConstruct extends Stack {
-    public readonly lambdaFunction: DockerImageFunction;
+abstract class BaseLambdaConstruct extends Stack {
+    public readonly lambdaFunction: Function | DockerImageFunction;
+    protected readonly props: BaseFunctionConstructProps;
 
-    constructor(scope: Stack, id: string, props: DockerLambdaConstructProps) {
+    constructor(scope: Construct, id: string, props: BaseFunctionConstructProps) {
         super(scope, id);
+        this.props = props;
 
-        for (const table of props?.subscriptions ?? []) {
+        this.validateDynamoSubscriptions();
+        this.lambdaFunction = this.createLambdaFunction();
+
+        // Configure the lambda function (envs, policies, event sources)
+        this.configureLambda();
+    }
+
+    // Abstract method that subclasses will implement to create the specific Lambda type
+    protected abstract createLambdaFunction(): Function | DockerImageFunction;
+
+    // Helper function to validate DynamoDB table stream
+    protected validateDynamoSubscriptions() {
+        for (const table of this.props.subscriptions ?? []) {
             if (!table.tableStreamArn) {
                 throw new Error(
-                    `DynamoDB table ${table.tableName} must have a stream enabled.`,
+                    `DynamoDB table ${table.tableName} must have a stream enabled.`
                 );
             }
         }
+    }
 
-        this.lambdaFunction = new DockerImageFunction(
-            this,
-            props.functionName || id,
-            {
-                code: DockerImageCode.fromImageAsset(props.sourcePath),
-                timeout: Duration.seconds(props.timeoutSeconds ?? 900),
-                memorySize: props.memorySize ?? 1024,
-                architecture: props.architecture ?? Architecture.ARM_64,
-            },
-        );
+    // Helper function to generate resource name
+    protected resourceName(suffix?: string): string {
+        return `${this.props.appName}-${this.props.envName}-${this.props.functionName}${suffix ? `-${suffix}` : ''}`;
+    }
 
-        // Add environment variables
-        const envEntries = Object.entries(props.envs ?? {});
-        for (const [key, value] of envEntries) {
+    // Common Lambda function configuration: environments, policies, and event sources
+    protected configureLambda() {
+        this.addEnvironments();
+        this.addPolicies();
+        this.addEventSources();
+    }
+
+    private addEnvironments() {
+        Object.entries(this.props.envs ?? {}).forEach(([key, value]) => {
             this.lambdaFunction.addEnvironment(key, value);
-        }
+        });
+    }
 
-        for (const statement of props.policyStatements ?? []) {
+    private addPolicies() {
+        this.props.policyStatements?.forEach(statement => {
             this.lambdaFunction.addToRolePolicy(statement);
-        }
+        });
+    }
 
-        for (const queue of props.queues ?? []) {
+    private addEventSources() {
+        this.props.queues?.forEach(queue => {
             this.lambdaFunction.addEventSource(new SqsEventSource(queue));
-        }
+        });
 
-        for (const table of props.subscriptions ?? []) {
-            this.lambdaFunction.addEventSource(
-                new DynamoEventSource(table, {
-                    startingPosition: StartingPosition.LATEST,
-                    metricsConfig: {
-                        metrics: [MetricType.EVENT_COUNT],
-                    },
-                }),
-            );
-        }
+        this.props.subscriptions?.forEach(table => {
+            this.lambdaFunction.addEventSource(new DynamoEventSource(table, {
+                startingPosition: StartingPosition.LATEST,
+                metricsConfig: { metrics: [MetricType.EVENT_COUNT] },
+            }));
+        });
     }
 }
 
-export class LambdaFunctionConstruct extends Stack {
-    public readonly lambdaFunction: Function;
+export class DockerLambdaConstruct extends BaseLambdaConstruct {
+    constructor(scope: Stack, id: string, props: DockerLambdaConstructProps) {
+        super(scope, id, props);
+    }
 
+    protected createLambdaFunction(): DockerImageFunction {
+        const props = this.props as DockerLambdaConstructProps; // Type assertion for specific props
+        return new DockerImageFunction(this, this.resourceName(), {
+            code: DockerImageCode.fromImageAsset(props.sourcePath),
+            timeout: Duration.seconds(props.timeoutSeconds ?? 900),
+            memorySize: props.memorySize ?? 1024,
+            architecture: props.architecture ?? Architecture.ARM_64,
+        });
+    }
+}
+
+export class LambdaFunctionConstruct extends BaseLambdaConstruct {
     constructor(scope: Construct, id: string, props: RegularLambdaConstructProps) {
-        super(scope, id);
-        for (const table of props?.subscriptions ?? []) {
-            if (!table.tableStreamArn) {
-                throw new Error(
-                    `DynamoDB table ${table.tableName} must have a stream enabled.`,
-                );
-            }
-        }
+        super(scope, id, props);
+    }
 
-        this.lambdaFunction = new Function(this, props.functionName, {
-            memorySize: props?.memorySize ?? 128,
-            timeout: Duration.seconds(props?.timeoutSeconds ?? 30),
+    protected createLambdaFunction(): Function {
+        const props = this.props as RegularLambdaConstructProps; // Type assertion for specific props
+        return new Function(this, this.resourceName(), {
+            memorySize: props.memorySize ?? 128,
+            timeout: Duration.seconds(props.timeoutSeconds ?? 30),
             code: Code.fromAsset(props.sourcePath),
             runtime: props.runtime,
             handler: props.handler,
         });
-
-        // Add environment variables
-        const envEntries = Object.entries(props.envs ?? {});
-        for (const [key, value] of envEntries) {
-            this.lambdaFunction.addEnvironment(key, value);
-        }
-
-        for (const statement of props.policyStatements ?? []) {
-            this.lambdaFunction.addToRolePolicy(statement);
-        }
-
-        for (const queue of props.queues ?? []) {
-            this.lambdaFunction.addEventSource(new SqsEventSource(queue));
-        }
-
-        for (const table of props.subscriptions ?? []) {
-            this.lambdaFunction.addEventSource(
-                new DynamoEventSource(table, {
-                    startingPosition: StartingPosition.LATEST,
-                    metricsConfig: {
-                        metrics: [MetricType.EVENT_COUNT],
-                    },
-                }),
-            );
-        }
     }
 }
