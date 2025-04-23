@@ -6,22 +6,12 @@ import {
 	type GetObjectCommandInput,
 	type GetObjectCommandOutput,
 } from "@aws-sdk/client-s3";
-import type { Document } from "@altscore/gql-types";
+import type { Document, GetDocumentQuery, GetDocumentQueryVariables } from "@altscore/gql-types";
 import type { Readable } from "node:stream";
 import { PdfReader } from "pdfreader";
 import { createHash } from "node:crypto";
-
-// import { Amplify } from 'aws-amplify';
-// import { generateClient } from 'aws-amplify/data';
-// //@ts-expect-error
-// import { env } from '$amplify/env/dummyfunction'; 
-
-
-// const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(env);
-
-// Amplify.configure(resourceConfig, libraryOptions);
-
-// export const AppsyncClient = generateClient<SchemaType>();
+import { execGraphqlQuery } from "@altscore/gql-client"
+import { getDocument } from "@altscore/gql-types";
 
 const s3Client = new S3Client();
 export const handler: Handler = async (event: DynamoDBStreamEvent, context) => {
@@ -35,11 +25,14 @@ export const handler: Handler = async (event: DynamoDBStreamEvent, context) => {
 			console.log("Processing Record: ", JSON.stringify(dataObject, null, 2));
 			console.log("Password: ", dataObject?.password ?? "");
 			// get document
-			// const fetchDocument = await AppsyncClient.models.Document.get({
-			// 	id: dataObject.id,
-			// });
+			const fetchDocument = await execGraphqlQuery({
+				query: getDocument,
+				variables: {
+					id: dataObject.id
+				}
+			});
 
-			// console.log("Fetch Doc: ", fetchDocument);
+			console.log("Fetch Doc: ", JSON.stringify(fetchDocument, null, 2));
 			const document = await getS3Object(s3Client, dataObject.url);
 			console.log("DocBody: ", document?.Body);
 			if (document) {

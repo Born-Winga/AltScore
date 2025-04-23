@@ -71,6 +71,7 @@
   "devDependencies": {
     "@altscore/cdk-outputs": "workspace:*",
     "@altscore/gql-types": "workspace:*",
+    "@altscore/gql-client": "workspace:*",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

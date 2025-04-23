@@ -78,12 +78,11 @@ const fileDbRefSchema = z.object({
 export default function AnalysisPage() {
 	const router = useRouter();
 	const bucket = Amplify.getConfig().Storage?.S3.bucket;
-	const { authUser } = useAuthStore();
+	const { userId } = useAuthStore();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [uploading, setUploading] = useState(false);
 	const [uploadProgress, setUploadProgress] = useState(0);
-
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
@@ -110,7 +109,7 @@ export default function AnalysisPage() {
 				file_name: values.file.name,
 				type: values.doc_type,
 				url: path,
-				userId: authUser?.sub ?? "",
+				userId: userId ?? "",
 				shortId: uid.rnd(),
 			} as z.infer<typeof fileDbRefSchema>;
 
@@ -163,7 +162,7 @@ export default function AnalysisPage() {
 							);
 						}
 					},
-					metadata: { name: file.name, userId: authUser?.sub ?? "" },
+					metadata: { name: file.name, userId: userId ?? "" },
 				},
 			}).result;
 
@@ -200,7 +199,6 @@ export default function AnalysisPage() {
 				shortId: uid.rnd(),
 				url: record.url,
 			} as unknown as Document;
-
 			await saveDocument(payload);
 			toast.success("Document submitted successfully");
 		} catch (error) {

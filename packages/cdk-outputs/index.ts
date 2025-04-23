@@ -19,11 +19,10 @@ export const outputs = {
     },
     API: {
         GraphQL: {
-            endpoint: AppysncOutputs.awsAppsyncApiEndpoint,
-            // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-            defaultAuthMode: AppysncOutputs.awsAppsyncAuthenticationType as any,
-            apiKey: AppysncOutputs.awsAppsyncApiKey,
+            endpoint: AppysncOutputs.GraphQLAPIURL,
+            apiKey: AppysncOutputs.GraphQLAPIKey,
             region: 'us-east-1',
+            defaultAuthMode: 'userPool',
         }
     },
     Storage: {

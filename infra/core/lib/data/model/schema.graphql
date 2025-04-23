@@ -29,10 +29,11 @@ type User @aws_iam @aws_cognito_user_pools @aws_api_key {
 	email: AWSEmail!
 	createdAt: AWSDateTime!
 	updatedAt: AWSDateTime!
-	apiKey: String!
-	status: String!
-	deleted: Boolean!
-	documents: [Document]
+	apiKey: String
+	status: String
+	deleted: Boolean
+	owner: String
+	__typename: String!
 }
 
 type Document @aws_iam @aws_cognito_user_pools @aws_api_key {
@@ -41,8 +42,7 @@ type Document @aws_iam @aws_cognito_user_pools @aws_api_key {
 	name: String!
 	issuer: String!
 	password: String
-	userId: ID!
-	user: User
+	userId: ID
 	status: DocStatus
 	expiryDate: AWSDateTime
 	createdAt: AWSDateTime!
@@ -51,82 +51,72 @@ type Document @aws_iam @aws_cognito_user_pools @aws_api_key {
 	hash: String
 	shortId: String!
 	url: String!
-	transactions: [Transaction]
-	log: [DocumentLog]
 	deleted: Boolean!
+	owner: String
+	__typename: String!
 }
 
-type Transaction @aws_iam @aws_cognito_user_pools @aws_api_key {
-	id: ID!
-	type: TransactionType
-	description: TransactionDescription
-	amount: Float
-	details: String
-	documentId: ID
-	document: Document
-	createdAt: AWSDateTime!
-	updatedAt: AWSDateTime!
-	deleted: Boolean!
+input DocumentFilterInput {
+	status: StringFilterInput
 }
 
-type DocumentLog @aws_iam @aws_cognito_user_pools @aws_api_key {
-	id: ID!
-	documentId: ID!
-	document: Document
-	createdAt: AWSDateTime!
-	updatedAt: AWSDateTime!
-	log: String
-	deleted: Boolean
+input StringFilterInput {
+	eq: String
+	contains: String
 }
-
-input DocumentFilter {
-	status: DocStatus
-	issuer: String
-	type: String
+type ModelDocumentsConnection @aws_iam @aws_cognito_user_pools {
+	items: [Document!]!
+	nextToken: String
 }
-
 type Query {
 	getUser(id: ID!): User @aws_iam @aws_cognito_user_pools @aws_api_key
 	getDocument(id: ID!): Document @aws_iam @aws_cognito_user_pools @aws_api_key
-	listDocumentsByUser(userId: ID!): [Document] @aws_iam @aws_cognito_user_pools
-	getTransaction(id: ID!): Transaction
-		@aws_iam
-		@aws_cognito_user_pools
-		@aws_api_key
-
-	getDocumentLog(id: ID!): DocumentLog @aws_iam @aws_cognito_user_pools
 	listUsers: [User] @aws_iam @aws_cognito_user_pools @aws_api_key
-	
 	listDocuments(
-		filter: DocumentFilter
-		pagination: PaginationInput
-	): PaginatedResult @aws_iam @aws_cognito_user_pools @aws_api_key
-
-	listTransactions: [Transaction] @aws_iam @aws_cognito_user_pools @aws_api_key
-	listDocumentLogs: [DocumentLog] @aws_iam @aws_cognito_user_pools
+		limit: Int
+		nextToken: String
+		filter: DocumentFilterInput
+	): ModelDocumentsConnection @aws_iam @aws_cognito_user_pools @aws_api_key
 }
 
 type Mutation {
-	createUser(input: CreateUserInput!): User @aws_cognito_user_pools
-	updateUser(input: UpdateUserInput!): User @aws_cognito_user_pools
-	createDocument(input: CreateDocumentInput!): Document @aws_cognito_user_pools
+	createUser(input: CreateUserInput!): User
+		@aws_iam
+		@aws_cognito_user_pools
+		@aws_api_key
+	updateUser(input: UpdateUserInput!): User
+		@aws_iam
+		@aws_cognito_user_pools
+		@aws_api_key
+	createDocument(input: CreateDocumentInput!): Document
+		@aws_iam
+		@aws_cognito_user_pools
+		@aws_api_key
 	updateDocument(input: UpdateDocumentInput!): Document
 		@aws_iam
 		@aws_cognito_user_pools
+		@aws_api_key
+}
 
-	createTransaction(input: CreateTransactionInput!): Transaction
-		@aws_cognito_user_pools
-
-	createDocumentLog(input: CreateDocumentLogInput!): DocumentLog
+type Subscription {
+	onCreateDocument: Document
+		@aws_subscribe(mutations: ["createDocument"])
 		@aws_iam
 		@aws_cognito_user_pools
+		@aws_api_key
 }
 
 # Input types
 input CreateUserInput {
+	id: ID!
 	name: String!
 	email: AWSEmail!
+	createdAt: AWSDateTime!
+	updatedAt: AWSDateTime!
 	apiKey: String!
+	status: String!
+	deleted: Boolean!
+	__typename: String!
 }
 
 input UpdateUserInput {
@@ -138,17 +128,22 @@ input UpdateUserInput {
 }
 
 input CreateDocumentInput {
+	id: ID!
 	type: String!
 	name: String!
 	issuer: String!
 	password: String
-	userId: ID!
+	userId: ID
 	status: DocStatus
 	expiryDate: AWSDateTime
+	createdAt: AWSDateTime!
+	updatedAt: AWSDateTime!
 	summary: AWSJSON
 	hash: String
 	shortId: String!
 	url: String!
+	deleted: Boolean!
+	__typename: String!
 }
 
 input UpdateDocumentInput {
@@ -156,26 +151,5 @@ input UpdateDocumentInput {
 	status: DocStatus
 	password: String
 	summary: AWSJSON
-}
-
-input CreateTransactionInput {
-	type: TransactionType!
-	description: TransactionDescription!
-	amount: Float!
-	details: String!
-	documentId: ID!
-}
-
-input CreateDocumentLogInput {
-	documentId: ID!
-}
-
-input PaginationInput {
-	limit: Int
-	nextToken: String
-}
-
-type PaginatedResult {
-	items: [Any]
-	nextToken: String
+	userId: ID
 }

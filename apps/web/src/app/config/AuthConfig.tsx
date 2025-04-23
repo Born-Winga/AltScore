@@ -3,6 +3,7 @@ import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Amplify } from "aws-amplify";
 import { outputs } from "@altscore/cdk-outputs";
+
 import {
   Authenticator,
   useTheme,
@@ -16,6 +17,7 @@ import AltScoreLogo from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { fetchAuthSession } from "aws-amplify/auth";
 
+// @ts-expect-error
 Amplify.configure(outputs, {
   API: {
     GraphQL: {

@@ -8,6 +8,7 @@ import { S3Stack } from "../lib/storage/s3";
 import { LambdaFunctionConstruct } from "../lib/functions";
 import { QueueConstruct } from "../lib/queues";
 import path = require("node:path");
+import { Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 interface AppConfig {
   appName: string;
@@ -19,9 +20,9 @@ interface AppConfig {
 function getLambdaEnvironment(dataStack: AppSyncStack, storageStack: S3Stack) {
   return {
     DOCUMENT_BUCKET: storageStack.bucket.bucketName,
-    GRAPHQL_KEY: dataStack.graphQlApi.apiKey ?? "null",
-    GRAPHQL_API_ID: dataStack.graphQlApi.apiId,
-    GRAPHQL_URL: dataStack.graphQlApi.graphqlUrl,
+    GRAPHQL_KEY: dataStack.api.apiKey ?? "null",
+    GRAPHQL_API_ID: dataStack.api.apiId,
+    GRAPHQL_URL: dataStack.api.graphqlUrl,
   };
 }
 
@@ -31,9 +32,9 @@ function configureLambdaPermissions(
   dataStack: AppSyncStack
 ) {
   storageStack.bucket.grantRead(lambda.lambdaFunction);
-  const { graphqlApi } = dataStack.graphQlApi.resources;
-  graphqlApi.grantMutation(lambda.lambdaFunction);
-  graphqlApi.grantQuery(lambda.lambdaFunction);
+
+  dataStack.api.grantMutation(lambda.lambdaFunction);
+  dataStack.api.grantQuery(lambda.lambdaFunction);
 }
 
 function configureApplication() {
@@ -44,7 +45,7 @@ function configureApplication() {
   };
 
   const app = new App();
-  
+
   // Infrastructure Stacks
   const authStack = new AuthStack(app, `${appConfig.appName}-AuthStack`, appConfig);
   const dataStack = new AppSyncStack(app, `${appConfig.appName}-AppSyncStack`, {
@@ -57,17 +58,16 @@ function configureApplication() {
     timeoutSeconds: 900,
   });
 
+  const graphqlApiId = dataStack.api.apiId
+  const account = dataStack.account
+  const region = dataStack.region ?? "us-east-1"
+
   // Configure permissions
   const { authenticatedRole } = authStack.identityPool;
   storageStack.bucket.grantReadWrite(authenticatedRole);
   storageStack.bucket.grantPut(authenticatedRole);
 
   // Lambda Configuration
-  const models = ["Document"];
-  const schedulerTables = models.map(
-    (model) => dataStack.graphQlApi.resources.tables[model] as Table
-  );
-
   const documentScheduler = new LambdaFunctionConstruct(
     app,
     `${appConfig.appName}-DocumentScheduler`,
@@ -76,7 +76,7 @@ function configureApplication() {
       functionName: "Documents-Scheduler",
       timeoutSeconds: 900,
       memorySize: 1024,
-      subscriptions: schedulerTables,
+      subscriptions: [dataStack.documentsTable],
       queues: [documentsQueue.queue],
       runtime: Runtime.NODEJS_22_X,
       sourcePath: path.join(__dirname, "../../../functions/document-scheduler/dist"),
@@ -85,6 +85,19 @@ function configureApplication() {
     }
   );
 
+  // allow appsycn invoke 
+  const lambdaRole = documentScheduler.lambdaFunction.role;
+  if (lambdaRole) {
+    lambdaRole.addToPrincipalPolicy(new PolicyStatement({
+      effect: Effect.ALLOW,
+      actions: ["appsync:GraphQL"],
+      resources: [
+        `arn:aws:appsync:${region}:${account}:apis/${graphqlApiId}/types/Query/fields/getDocument`,
+        `arn:aws:appsync:${region}:${account}:apis/${graphqlApiId}/types/Mutation/fields/getDocument`,
+        `arn:aws:appsync:${region}:${account}:apis/${graphqlApiId}/types/Mutation/fields/updateDocument`
+      ]
+    }));
+  }
   configureLambdaPermissions(documentScheduler, storageStack, dataStack);
 }
 

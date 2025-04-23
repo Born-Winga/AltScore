@@ -4,7 +4,9 @@
   "private": true,
   "description": "",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "generate:types": "npx @aws-amplify/cli codegen"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
