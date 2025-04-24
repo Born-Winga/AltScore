@@ -4,9 +4,13 @@
 	"description": "",
 	"main": "index.js",
 	"scripts": {
-		"codegen": "graphql-codegen --config codegen.ts"
+		"build": "turbo run build",
+		"dev": "turbo run dev",
+		"lint": "turbo run lint",
+		"format": "prettier --write \"**/*.{ts,tsx,md}\"",
+		"check-types": "turbo run check-types",
+		"fn:build": "turbo run fn:build"
 	},
-	"packageManager": "pnpm",
 	"keywords": [],
 	"author": "",
 	"license": "ISC",
@@ -22,5 +26,6 @@
 	},
 	"dependencies": {
 		"graphql": "^16.10.0"
-	}
+	},
+	"packageManager": "pnpm@10.8.0"
 }
