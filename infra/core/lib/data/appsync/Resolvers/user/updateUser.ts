@@ -9,8 +9,7 @@ export function request(ctx: Context) {
 	const key = { id: ctx.args.id };
 	return ddb.update({
 		key,
-		update: { ...item },
-		condition: { expression: "attribute_exists(id)" },
+		update: { ...item }
 	});
 }
 

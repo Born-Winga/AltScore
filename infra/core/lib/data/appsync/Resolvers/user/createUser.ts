@@ -7,19 +7,20 @@ import * as ddb from "@aws-appsync/utils/dynamodb";
 
 export function request(ctx: Context) {
 	const identity = ctx.identity as AppSyncIdentityCognito;
+	const id = ctx.arguments.input.id ?? util.autoId();
 	const item = {
 		...ctx.arguments.input,
+		id,
 		createdAt: util.time.nowISO8601(),
 		updatedAt: util.time.nowISO8601(),
-		owner: identity ? identity?.username : null,
+		owner: identity?.sub ?? (id || null),
 		deleted: false,
 		__typename: "User",
 	};
-	const key = { id: ctx.args.id ?? util.autoId() };
+
 	return ddb.put({
-		key,
+		key: { id },
 		item,
-		condition: { expression: "attribute_not_exists(id)" },
 	});
 }
 

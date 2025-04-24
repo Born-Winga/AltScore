@@ -10,7 +10,6 @@ export function request(ctx: Context) {
 	return ddb.update({
 		key,
 		update: { ...item },
-		condition: { expression: "attribute_exists(id)" },
 	});
 }
 

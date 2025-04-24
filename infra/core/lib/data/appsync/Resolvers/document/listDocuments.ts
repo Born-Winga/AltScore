@@ -18,7 +18,5 @@ export function request(ctx: Context) {
 }
 
 export const response = (ctx: Context) => {
-	const items = ctx.result?.items ?? [];
-	const nextToken = ctx.result?.nextToken;
-	return { items, nextToken };
+	return ctx.result;
 };
