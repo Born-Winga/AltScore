@@ -83,10 +83,11 @@ export const getDocument = /* GraphQL */ `
 `;
 export const listDocuments = /* GraphQL */ `
   query ListDocuments(
+    $filter: ModelDocumentFilterInput
     $limit: Int
     $nextToken: String
   ) {
-    listDocuments(limit: $limit, nextToken: $nextToken) {
+    listDocuments(filter: $filter, limit: $limit, nextToken: $nextToken) {
       items {
         id
         type

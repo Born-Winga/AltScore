@@ -16,10 +16,6 @@ export const createUser = /* GraphQL */ `
       apiKey
       status
       deleted
-      documents {
-        nextToken
-      }
-      owner
     }
   }
 `;
@@ -77,17 +73,6 @@ export const createDocument = /* GraphQL */ `
       issuer
       password
       userId
-      user {
-        id
-        name
-        email
-        createdAt
-        updatedAt
-        apiKey
-        status
-        deleted
-        owner
-      }
       status
       expiryDate
       createdAt
@@ -96,13 +81,6 @@ export const createDocument = /* GraphQL */ `
       hash
       shortId
       url
-      transactions {
-        nextToken
-      }
-      log {
-        nextToken
-      }
-      userDocumentsId
       owner
     }
   }
