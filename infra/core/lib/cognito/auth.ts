@@ -11,17 +11,11 @@ import {
 } from "aws-cdk-lib/aws-cognito-identitypool";
 import { CfnOutput } from "aws-cdk-lib";
 
-import { Runtime } from "aws-cdk-lib/aws-lambda";
-import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import type { Construct } from "constructs";
-import { Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 export interface AuthStackProps extends StackProps {
 	envName: string;
 	appName: string;
-	postConfirmationFnFile?: string;
-	postConfirmationRuntime?: Runtime;
-	postConfirmationHandler?: string;
 	allowUnauthenticatedIdentities?: boolean;
 }
 
@@ -33,38 +27,10 @@ export class AuthStack extends Stack {
 	constructor(scope: Construct, id: string, props: AuthStackProps) {
 		super(scope, id, props);
 
-		const {
-			envName,
-			appName,
-			postConfirmationFnFile,
-			postConfirmationHandler,
-			postConfirmationRuntime = Runtime.NODEJS_22_X,
-			allowUnauthenticatedIdentities = false,
-		} = props;
+		const { envName, appName, allowUnauthenticatedIdentities = false } = props;
 
 		// Helper function for consistent naming
 		const resourceName = (suffix: string) => `${appName}-${envName}-${suffix}`;
-
-		// Configure post-confirmation Lambda if required
-		const postConfirmationFn =
-			postConfirmationFnFile && postConfirmationHandler
-				? new NodejsFunction(this, resourceName("postconfirm"), {
-						functionName: resourceName("postconfirm"),
-						entry: postConfirmationFnFile,
-						runtime: postConfirmationRuntime,
-						handler: postConfirmationHandler,
-					})
-				: undefined;
-
-		if (postConfirmationFn) {
-			postConfirmationFn.addToRolePolicy(
-				new PolicyStatement({
-					actions: ["dynamodb:PutItem", "dynamodb:GetItem"],
-					effect: Effect.ALLOW,
-					resources: ["arn:aws:dynamodb:region:account-id:table/table-name"],
-				}),
-			);
-		}
 
 		// Create Cognito User Pool with security best practices
 		this.userPool = new UserPool(this, resourceName("userpool"), {
@@ -90,9 +56,6 @@ export class AuthStack extends Stack {
 					required: true,
 					mutable: true,
 				},
-			},
-			lambdaTriggers: {
-				postConfirmation: postConfirmationFn,
 			},
 		});
 
@@ -141,13 +104,5 @@ export class AuthStack extends Stack {
 			exportName: resourceName("IdentityPoolId"),
 			description: "Identity Pool ID",
 		});
-
-		if (postConfirmationFn) {
-			new CfnOutput(this, resourceName("PostConfirmationFnArn"), {
-				value: postConfirmationFn.functionArn,
-				exportName: resourceName("PostConfirmationFnArn"),
-				description: "Post Confirmation Lambda ARN",
-			});
-		}
 	}
 }

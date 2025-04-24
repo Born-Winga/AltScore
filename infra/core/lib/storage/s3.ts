@@ -1,4 +1,4 @@
-import { type App, CfnOutput, Duration, Stack, type StackProps } from "aws-cdk-lib";
+import { type App, CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from "aws-cdk-lib";
 import { AnyPrincipal, ArnPrincipal, Effect, PolicyStatement, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import { BlockPublicAccess, Bucket, HttpMethods } from "aws-cdk-lib/aws-s3";
 
@@ -23,7 +23,8 @@ export class S3Stack extends Stack {
                     allowedHeaders: ["*"],
                     maxAge: 300,
                 }
-            ]
+            ],
+            removalPolicy: RemovalPolicy.DESTROY
         })
         this.bucket.addToResourcePolicy(
             new PolicyStatement({
