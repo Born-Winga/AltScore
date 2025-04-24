@@ -26,6 +26,7 @@ import {
 	ProjectionType,
 	StreamViewType,
 } from "aws-cdk-lib/aws-dynamodb";
+import { StringParameter } from "aws-cdk-lib/aws-ssm";
 
 export interface ApiStackProps extends StackProps {
 	envName: string;
@@ -73,6 +74,16 @@ export class AppSyncStack extends Stack {
 			},
 		});
 
+		// In AppsyncStack
+		new StringParameter(this, "AppSyncApiUrl", {
+			parameterName: "/appsync/api-url",
+			stringValue: this.api.graphqlUrl,
+		});
+
+		new StringParameter(this, "AppSyncApiId", {
+			parameterName: "/appsync/api-id",
+			stringValue: this.api.apiId,
+		});
 		const tableName = (suffix: string) => `${suffix}-${appName}-${envName}`;
 		// Users Table
 		this.usersTable = new Table(this, tableName("User"), {
@@ -156,12 +167,12 @@ export class AppSyncStack extends Stack {
 		usersDataSource.createResolver("CreateUserMutationResolver", {
 			typeName: "Mutation",
 			fieldName: "createUser",
-			requestMappingTemplate: MappingTemplate.dynamoDbPutItem(
-				PrimaryKey.partition("id").auto(),
-				Values.projecting("input"),
+			runtime: FunctionRuntime.JS_1_0_0,
+			code: Code.fromAsset(
+				path.join(__dirname, "./Resolvers/JS_RESOLVERS/user/createUser.js"),
 			),
-			responseMappingTemplate: MappingTemplate.dynamoDbResultItem(),
 		});
+
 		usersDataSource.createResolver("UpdateUserMutationResolver", {
 			typeName: "Mutation",
 			fieldName: "updateUser",
@@ -183,6 +194,7 @@ export class AppSyncStack extends Stack {
 				),
 			),
 		});
+
 		documentsDataSource.createResolver("ScanDocumentsQueryResolver", {
 			typeName: "Query",
 			fieldName: "listDocuments",
@@ -198,12 +210,15 @@ export class AppSyncStack extends Stack {
 		documentsDataSource.createResolver("CreateDocumentMutationResolver", {
 			typeName: "Mutation",
 			fieldName: "createDocument",
-			requestMappingTemplate: MappingTemplate.dynamoDbPutItem(
-				PrimaryKey.partition("id").auto(),
-				Values.projecting("input"),
+			runtime: FunctionRuntime.JS_1_0_0,
+			code: Code.fromAsset(
+				path.join(
+					__dirname,
+					"./Resolvers/JS_RESOLVERS/document/createDocument.js",
+				),
 			),
-			responseMappingTemplate: MappingTemplate.dynamoDbResultItem(),
 		});
+		
 		documentsDataSource.createResolver("UpdateDocumentMutationResolver", {
 			typeName: "Mutation",
 			fieldName: "updateDocument",

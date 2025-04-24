@@ -9,7 +9,7 @@
     "watch": "tsc -w",
     "test": "jest",
     "build:resolvers": "node build.mjs",
-    "cdk": "cdk deploy --all -y  --outputs-file ../../packages/cdk-outputs/outputs.json"
+    "cdk": "cdk deploy --all --force -y  --outputs-file ../../packages/cdk-outputs/outputs.json"
   },
   "devDependencies": {
     "@aws-appsync/utils": "^1.12.0",
