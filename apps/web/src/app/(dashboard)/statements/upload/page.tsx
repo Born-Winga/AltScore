@@ -33,12 +33,12 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { useAuthStore } from "@/lib/auth/authStore";
 import { Amplify } from "aws-amplify";
 import { v4 as uuidv4 } from "uuid";
 import Link from "next/link";
 import { saveDocument } from "../actions";
 import { cn } from "@/lib/utils";
+import { getCurrentUser } from "aws-amplify/auth";
 
 const banks = [
 	{ name: "KCB", value: "kcb" },
@@ -78,7 +78,6 @@ const fileDbRefSchema = z.object({
 export default function AnalysisPage() {
 	const router = useRouter();
 	const bucket = Amplify.getConfig().Storage?.S3.bucket;
-	const { userId } = useAuthStore();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [uploading, setUploading] = useState(false);
@@ -102,6 +101,7 @@ export default function AnalysisPage() {
 			const path = await handleFileUpload(values.file);
 			if (!path) return;
 
+			const user = await getCurrentUser();
 			const payload = {
 				bank: values.bank,
 				custom_bank: values.custom_bank,
@@ -109,7 +109,7 @@ export default function AnalysisPage() {
 				file_name: values.file.name,
 				type: values.doc_type,
 				url: path,
-				userId: userId ?? "",
+				userId: user.userId,
 				shortId: uid.rnd(),
 			} as z.infer<typeof fileDbRefSchema>;
 
@@ -162,7 +162,10 @@ export default function AnalysisPage() {
 							);
 						}
 					},
-					metadata: { name: file.name, userId: userId ?? "" },
+					metadata: {
+						name: file.name,
+						userId: (await getCurrentUser()).userId,
+					},
 				},
 			}).result;
 
