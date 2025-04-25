@@ -1,13 +1,13 @@
 // lib/lambda/lambda-stack.ts
 import { Aws, Stack, type StackProps } from "aws-cdk-lib";
 import type { Construct } from "constructs";
-import { Runtime } from "aws-cdk-lib/aws-lambda";
+import type { Function } from "aws-cdk-lib/aws-lambda";
 import { type UserPool, UserPoolOperation } from "aws-cdk-lib/aws-cognito";
 import type { GraphqlApi } from "aws-cdk-lib/aws-appsync";
 import type { Bucket } from "aws-cdk-lib/aws-s3";
 import type { Queue } from "aws-cdk-lib/aws-sqs";
 
-import { LambdaFunctionConstruct } from "./constructs";
+import { DockerLambdaConstruct, LambdaFunctionConstruct } from "./constructs";
 import type { Table } from "aws-cdk-lib/aws-dynamodb";
 import type { AppConfig } from "../../bin/utils";
 import path = require("node:path");
@@ -22,6 +22,7 @@ export interface LambdaStackProps extends StackProps, AppConfig {
 }
 
 export class LambdaStack extends Stack {
+	public readonly statementsFn: Function;
 	constructor(scope: Construct, id: string, props: LambdaStackProps) {
 		super(scope, id, props);
 
@@ -94,5 +95,40 @@ export class LambdaStack extends Stack {
 		props.bucket.grantRead(docFn.lambdaFunction);
 		props.api.grantQuery(docFn.lambdaFunction);
 		props.api.grantMutation(docFn.lambdaFunction);
+
+		const statementFn = new DockerLambdaConstruct(this, "StatementsProcessorFn", {
+			functionName: "StatementsProcessor",
+			subscriptions: props.tables,
+			queues: props.queues,
+			envs: {
+				DOCUMENT_BUCKET: props.bucket.bucketName,
+				GRAPHQL_KEY: props.api.apiKey ?? "null",
+				GRAPHQL_API_ID: props.api.apiId,
+				GRAPHQL_URL: props.api.graphqlUrl,
+			},
+			appName: props.appName,
+			envName: props.envName,
+			sourcePath: path.join(
+				__dirname,
+				"../../../../functions/statements-processor",
+			),
+		});
+
+		const statementFnRole = statementFn.lambdaFunction.role;
+		if (statementFnRole) {
+			const apiArnWildcard = `arn:aws:appsync:${Aws.REGION}:${Aws.ACCOUNT_ID}:apis/*`;
+			statementFnRole.addToPrincipalPolicy(
+				new PolicyStatement({
+					actions: ["appsync:*"],
+					resources: [apiArnWildcard],
+				}),
+			);
+			statementFnRole.addToPrincipalPolicy(ssmPolicy);
+		}
+		props.bucket.grantRead(statementFn.lambdaFunction);
+		props.api.grantQuery(statementFn.lambdaFunction);
+		props.api.grantMutation(statementFn.lambdaFunction);
+
+		this.statementsFn = statementFn.lambdaFunction
 	}
 }
