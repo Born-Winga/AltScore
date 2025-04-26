@@ -23,7 +23,7 @@ const data = new AppSyncStack(app, `${env.appName}-AppSyncStack`, {
 	userPoolId: auth.userPool.userPoolId,
 });
 const storage = new S3Stack(app, `${env.appName}-S3Stack`, env);
-const queue = new QueueConstruct(app, `${env.appName}-QueueStack`, {
+const docsQueue = new QueueConstruct(app, `${env.appName}-QueueStack`, {
 	isFifo: false,
 	timeoutSeconds: 900,
 });
@@ -33,7 +33,7 @@ const lambdas = new LambdaStack(app, `${env.appName}-LambdaStack`, {
 	api: data.api,
 	bucket: storage.bucket,
 	tables: [data.documentsTable],
-	queues: [queue.queue],
+	docsQueues: docsQueue.queue,
 });
 
 new RootApiStack(app, `${env.appName}-RestAPIStack`, {

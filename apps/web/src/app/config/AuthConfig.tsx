@@ -15,7 +15,13 @@ import {
 import "@aws-amplify/ui-react/styles.css";
 import AltScoreLogo from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { fetchAuthSession, signUp, type SignUpInput } from "aws-amplify/auth";
+import {
+	fetchAuthSession,
+	signIn,
+	type SignInInput,
+	signUp,
+	type SignUpInput,
+} from "aws-amplify/auth";
 
 // @ts-expect-error
 Amplify.configure(outputs, {
@@ -175,6 +181,19 @@ export function AuthConfig({ children }: { children: React.ReactNode }) {
 				},
 			});
 		},
+
+		async handleSignIn(input: SignInInput) {
+			const { username, password } = input;
+			const response = await signIn({
+				username,
+				password,
+			});
+
+			if (response.isSignedIn) {
+				router.push("/statements");
+			}
+			return response;
+		},
 	};
 	return (
 		<ThemeProvider theme={theme}>
@@ -183,7 +202,7 @@ export function AuthConfig({ children }: { children: React.ReactNode }) {
 					className="bg-transparent h-auto w-auto"
 					components={components}
 					hideSignUp={false}
-          services={services}
+					services={services}
 				>
 					{children}
 				</Authenticator>

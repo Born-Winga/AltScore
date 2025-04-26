@@ -97,17 +97,6 @@ export const updateDocument = /* GraphQL */ `
       issuer
       password
       userId
-      user {
-        id
-        name
-        email
-        createdAt
-        updatedAt
-        apiKey
-        status
-        deleted
-        owner
-      }
       status
       expiryDate
       createdAt
@@ -116,14 +105,6 @@ export const updateDocument = /* GraphQL */ `
       hash
       shortId
       url
-      transactions {
-        nextToken
-      }
-      log {
-        nextToken
-      }
-      userDocumentsId
-      owner
     }
   }
 `;

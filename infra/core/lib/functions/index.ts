@@ -18,7 +18,7 @@ export interface LambdaStackProps extends StackProps, AppConfig {
 	api: GraphqlApi;
 	bucket: Bucket;
 	tables: [Table];
-	queues: [Queue];
+	docsQueues: Queue;
 }
 
 export class LambdaStack extends Stack {
@@ -40,6 +40,13 @@ export class LambdaStack extends Stack {
 				// Add other parameters if needed
 			],
 		});
+
+		const sqsPolicy = new PolicyStatement({
+			effect: Effect.ALLOW,
+			actions: ["sqs:*"],
+			resources: [props.docsQueues.queueArn],
+		});
+		
 		// Post-confirmation Lambda & trigger
 		const postFn = new LambdaFunctionConstruct(this, "PostConfirmationFn", {
 			functionName: "PostConfirmation",
@@ -67,18 +74,25 @@ export class LambdaStack extends Stack {
 				}),
 			);
 			postFnLambdaRole.addToPrincipalPolicy(ssmPolicy);
+
+			if(props.docsQueues){
+				console.log(props.docsQueues.queueArn)
+				postFnLambdaRole.addToPrincipalPolicy(sqsPolicy)
+			}
 		}
 
 		// Document Scheduler Lambda
 		const docFn = new LambdaFunctionConstruct(this, "DocumentSchedulerFn", {
 			functionName: "DocumentsScheduler",
 			subscriptions: props.tables,
-			queues: props.queues,
 			envs: {
 				DOCUMENT_BUCKET: props.bucket.bucketName,
 				GRAPHQL_KEY: props.api.apiKey ?? "null",
 				GRAPHQL_API_ID: props.api.apiId,
 				GRAPHQL_URL: props.api.graphqlUrl,
+				QUEUE_ARN: props?.docsQueues?.queueArn ?? null,
+				QUEUE_NAME: props?.docsQueues?.queueName ?? null,
+				QUEUE_URL: props?.docsQueues?.queueUrl ?? null,
 			},
 
 			appName: props.appName,
@@ -95,24 +109,33 @@ export class LambdaStack extends Stack {
 		props.bucket.grantRead(docFn.lambdaFunction);
 		props.api.grantQuery(docFn.lambdaFunction);
 		props.api.grantMutation(docFn.lambdaFunction);
-
-		const statementFn = new DockerLambdaConstruct(this, "StatementsProcessorFn", {
-			functionName: "StatementsProcessor",
-			subscriptions: props.tables,
-			queues: props.queues,
-			envs: {
-				DOCUMENT_BUCKET: props.bucket.bucketName,
-				GRAPHQL_KEY: props.api.apiKey ?? "null",
-				GRAPHQL_API_ID: props.api.apiId,
-				GRAPHQL_URL: props.api.graphqlUrl,
+		if (props?.docsQueues) {
+			props?.docsQueues.grantSendMessages(docFn.lambdaFunction);
+		}
+		const statementFn = new DockerLambdaConstruct(
+			this,
+			"StatementsProcessorFn",
+			{
+				functionName: "StatementsProcessor",
+				subscriptions: props.tables,
+				queues: [props?.docsQueues],
+				envs: {
+					DOCUMENT_BUCKET: props.bucket.bucketName,
+					GRAPHQL_KEY: props.api.apiKey ?? "null",
+					GRAPHQL_API_ID: props.api.apiId,
+					GRAPHQL_URL: props.api.graphqlUrl,
+					QUEUE_ARN: props?.docsQueues?.queueArn ?? null,
+					QUEUE_NAME: props?.docsQueues?.queueName ?? null,
+					QUEUE_URL: props?.docsQueues?.queueUrl ?? null,
+				},
+				appName: props.appName,
+				envName: props.envName,
+				sourcePath: path.join(
+					__dirname,
+					"../../../../functions/statements-processor",
+				),
 			},
-			appName: props.appName,
-			envName: props.envName,
-			sourcePath: path.join(
-				__dirname,
-				"../../../../functions/statements-processor",
-			),
-		});
+		);
 
 		const statementFnRole = statementFn.lambdaFunction.role;
 		if (statementFnRole) {
@@ -129,6 +152,6 @@ export class LambdaStack extends Stack {
 		props.api.grantQuery(statementFn.lambdaFunction);
 		props.api.grantMutation(statementFn.lambdaFunction);
 
-		this.statementsFn = statementFn.lambdaFunction
+		this.statementsFn = statementFn.lambdaFunction;
 	}
 }

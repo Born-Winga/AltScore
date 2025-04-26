@@ -218,15 +218,17 @@ export class AppSyncStack extends Stack {
 				),
 			),
 		});
-		
+
 		documentsDataSource.createResolver("UpdateDocumentMutationResolver", {
 			typeName: "Mutation",
 			fieldName: "updateDocument",
-			requestMappingTemplate: MappingTemplate.dynamoDbPutItem(
-				PrimaryKey.partition("id").is("input.id"),
-				Values.projecting("input"),
+			runtime: FunctionRuntime.JS_1_0_0,
+			code: Code.fromAsset(
+				path.join(
+					__dirname,
+					"./Resolvers/JS_RESOLVERS/document/updateDocument.js",
+				),
 			),
-			responseMappingTemplate: MappingTemplate.dynamoDbResultItem(),
 		});
 
 		new CfnOutput(this, "GraphQLAPIURL", {
