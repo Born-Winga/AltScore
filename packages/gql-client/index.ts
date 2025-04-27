@@ -21,13 +21,11 @@ export async function execGraphqlQuery({
 	variables,
 }: GraphQLRequest): Promise<GraphQLResponse> {
 	let GRAPHQL_ENDPOINT = process?.env?.GRAPHQL_URL || null;
-	console.log("GRAPHQL_ENDPOINT 1: ", GRAPHQL_ENDPOINT);
 	if (!GRAPHQL_ENDPOINT) {
 		GRAPHQL_ENDPOINT = await getAppSyncUrl();
-		console.log("GRAPHQL_ENDPOINT 2: ", GRAPHQL_ENDPOINT);
-		if (!GRAPHQL_ENDPOINT) throw Error("GET SSM API URL ERROR");
+		if (!GRAPHQL_ENDPOINT) throw new Error("GET SSM API URL ERROR");
 	}
-	console.log("GRAPHQL_ENDPOINT 3: ", GRAPHQL_ENDPOINT);
+
 	const endpoint = new URL(GRAPHQL_ENDPOINT);
 	const body = JSON.stringify({ query, variables });
 
@@ -38,7 +36,7 @@ export async function execGraphqlQuery({
 		path: endpoint.pathname,
 		headers: {
 			"Content-Type": "application/json",
-			host: endpoint.hostname,
+			Host: endpoint.hostname,
 		},
 		body,
 	});
@@ -55,8 +53,13 @@ export async function execGraphqlQuery({
 	const response = await fetch(GRAPHQL_ENDPOINT, {
 		method: signed.method,
 		headers: signed.headers as Record<string, string>,
-		body: signed.body?.toString(),
+		body: signed.body,
 	});
+
+	if (!response.ok) {
+		const errorText = await response.text();
+		throw new Error(`GraphQL call failed: ${response.status} ${errorText}`);
+	}
 
 	const responseBody = await response.json();
 
@@ -67,7 +70,7 @@ export async function execGraphqlQuery({
 }
 
 async function getAppSyncUrl() {
-	const client = new SSMClient({});
+	const client = new SSMClient({ region: "us-east-1" });
 	const appSyncUrlInput = {
 		Name: "/appsync/api-url",
 		WithDecryption: true,

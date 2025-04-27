@@ -27,6 +27,7 @@ import {
 	StreamViewType,
 } from "aws-cdk-lib/aws-dynamodb";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
+import { RetentionDays } from "aws-cdk-lib/aws-logs";
 
 export interface ApiStackProps extends StackProps {
 	envName: string;
@@ -71,6 +72,10 @@ export class AppSyncStack extends Stack {
 						authorizationType: AuthorizationType.IAM,
 					},
 				],
+			},
+			logConfig: {
+				retention: RetentionDays.ONE_DAY,
+				excludeVerboseContent: false
 			},
 		});
 

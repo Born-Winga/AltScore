@@ -270,10 +270,10 @@ type Mutation {
 		input: CreateDocumentInput!
 		condition: ModelDocumentConditionInput
 	): Document @aws_iam @aws_cognito_user_pools @aws_api_key
-	updateDocument(input: UpdateDocumentInput!): Document
-		@aws_iam
-		@aws_cognito_user_pools
-		@aws_api_key
+	updateDocument(
+		input: UpdateDocumentInput!
+		condition: ModelDocumentConditionInput
+	): Document @aws_iam @aws_cognito_user_pools @aws_api_key
 }
 
 type Subscription {
@@ -324,8 +324,18 @@ input CreateDocumentInput {
 
 input UpdateDocumentInput {
 	id: ID!
-	status: DocStatus
+	type: String
+	name: String
+	issuer: String
 	password: String
-	summary: AWSJSON
 	userId: ID
+	status: DocStatus
+	expiryDate: AWSDateTime
+	createdAt: AWSDateTime
+	updatedAt: AWSDateTime
+	summary: AWSJSON
+	hash: String
+	shortId: String
+	url: String
+	deleted: Boolean
 }
