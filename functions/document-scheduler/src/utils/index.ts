@@ -1,4 +1,9 @@
-import { type S3Client, type GetObjectCommandInput, GetObjectCommand, type GetObjectCommandOutput } from "@aws-sdk/client-s3";
+import {
+	type S3Client,
+	type GetObjectCommandInput,
+	GetObjectCommand,
+	type GetObjectCommandOutput,
+} from "@aws-sdk/client-s3";
 import { PdfReader } from "pdfreader";
 import type { Readable } from "node:stream";
 
@@ -29,23 +34,31 @@ export const streamToBuffer = async (stream: Readable): Promise<Buffer> => {
 	return Buffer.concat(chunks);
 };
 
-export const extractTextFromBuffer = (buffer: Buffer): Promise<string> => {
-	console.log("Here 0");
-	return new Promise((resolve, reject) => {
-		const textChunks: string[] = [];
+export const extractTextFromBuffer = (
+	buffer: Buffer,
+	password: string,
+): Promise<string |null> => {
+	try {
+		console.log("Here 0");
+		return new Promise((resolve, reject) => {
+			const textChunks: string[] = [];
 
-		new PdfReader().parseBuffer(buffer, (err, item) => {
-			if (err) {
-				return reject(err);
-			}
-			if (!item) {
-				return resolve(textChunks.join(" "));
-			}
-			if (item.text) {
-				textChunks.push(item.text);
-			}
+			new PdfReader({ password: password }).parseBuffer(buffer, (err, item) => {
+				if (err) {
+					return reject(err);
+				}
+				if (!item) {
+					return resolve(textChunks.join(" "));
+				}
+				if (item.text) {
+					textChunks.push(item.text);
+				}
+			});
+
+			return textChunks;
 		});
-
-		return textChunks;
-	});
+	} catch (error) {
+		console.log("ERRO: ", error);
+		return  Promise.resolve(null)
+	}
 };

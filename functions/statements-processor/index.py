@@ -1,34 +1,38 @@
-from starlette.requests import Request
-from fastapi import FastAPI
-from mangum import Mangum
-from mpesa_statement import MpesaStatementParser
+# lambda_handler.py
 
-app = FastAPI()
+import json
+from api_handler import ApiHandler
+from events_handler import EventsHandler
 
-
-@app.get("/statements")
-def hello(request: Request):
-    transactions = None
-    with MpesaStatementParser("*****", "****") as parser:
-        transactions = parser.get_summary()
-        print("DONE")
-        print(transactions)
-    return transactions
+# Instantiate ApiHandler ONCE (cold start optimization)
+api_instance = ApiHandler()
 
 
-@app.post("/statements")
-def hello(request: Request):
-    return {"aws_event": request.scope["aws.event"]}
+def handler(event, context):
+    is_api_request = event.get("httpMethod")
 
+    if is_api_request:
+        print("API Request received:\n", json.dumps(event))
+        # Pass the event into the Mangum handler (api_instance.api)
+        response = api_instance.api(event, context)
+        return response
 
-@app.put("/statements")
-def hello(request: Request):
-    return {"aws_event": request.scope["aws.event"]}
+    else:
+        # Handle non-API events (e.g., SQS, DynamoDB Streams)
+        records = event.get("Records", [])
+        record = records[0]
+        source = record.get("eventSource")
+        if source == "aws:sqs":
+            print("SQS Event received:\n", json.dumps(record))
+            event_handler = EventsHandler(records=records, event_type=source)
+            results = event_handler.handle_event()
+            print(f"Queue Processing Results: {results}")
 
+        elif source == "aws:dynamodb":
+            print("DynamoDB Stream Event received:\n", json.dumps(record))
+            # Handle DynamoDB event here
 
-@app.delete("/statements")
-def hello(request: Request):
-    return {"aws_event": request.scope["aws.event"]}
-
-
-handler = Mangum(app, lifespan="off")
+        return {
+            "statusCode": 200,
+            "body": json.dumps({"message": "Event processed successfully"}),
+        }

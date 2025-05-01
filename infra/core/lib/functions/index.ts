@@ -1,5 +1,5 @@
 // lib/lambda/lambda-stack.ts
-import { Aws, Stack, type StackProps } from "aws-cdk-lib";
+import { Aws, Duration, Stack, type StackProps } from "aws-cdk-lib";
 import type { Construct } from "constructs";
 import type { Function } from "aws-cdk-lib/aws-lambda";
 import { type UserPool, UserPoolOperation } from "aws-cdk-lib/aws-cognito";
@@ -46,7 +46,7 @@ export class LambdaStack extends Stack {
 			actions: ["sqs:*"],
 			resources: [props.docsQueues.queueArn],
 		});
-		
+
 		// Post-confirmation Lambda & trigger
 		const postFn = new LambdaFunctionConstruct(this, "PostConfirmationFn", {
 			functionName: "PostConfirmation",
@@ -75,9 +75,9 @@ export class LambdaStack extends Stack {
 			);
 			postFnLambdaRole.addToPrincipalPolicy(ssmPolicy);
 
-			if(props.docsQueues){
-				console.log(props.docsQueues.queueArn)
-				postFnLambdaRole.addToPrincipalPolicy(sqsPolicy)
+			if (props.docsQueues) {
+				console.log(props.docsQueues.queueArn);
+				postFnLambdaRole.addToPrincipalPolicy(sqsPolicy);
 			}
 		}
 
@@ -94,7 +94,8 @@ export class LambdaStack extends Stack {
 				QUEUE_NAME: props?.docsQueues?.queueName ?? null,
 				QUEUE_URL: props?.docsQueues?.queueUrl ?? null,
 			},
-
+			timeoutSeconds: 900,
+			memorySize: 2048,
 			appName: props.appName,
 			envName: props.envName,
 			sourcePath: path.join(
@@ -117,7 +118,7 @@ export class LambdaStack extends Stack {
 			"StatementsProcessorFn",
 			{
 				functionName: "StatementsProcessor",
-				subscriptions: props.tables,
+				subscriptions: [],
 				queues: [props?.docsQueues],
 				envs: {
 					DOCUMENT_BUCKET: props.bucket.bucketName,
@@ -128,12 +129,14 @@ export class LambdaStack extends Stack {
 					QUEUE_NAME: props?.docsQueues?.queueName ?? null,
 					QUEUE_URL: props?.docsQueues?.queueUrl ?? null,
 				},
+				timeoutSeconds: 900,
 				appName: props.appName,
 				envName: props.envName,
 				sourcePath: path.join(
 					__dirname,
 					"../../../../functions/statements-processor",
 				),
+				memorySize: 2048
 			},
 		);
 

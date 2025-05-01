@@ -27,6 +27,7 @@ class MpesaStatementParser:
         Initializes the parser with access to all pages of the MPESA PDF statement.
         """
         try:
+            print(f"Debug 14: {pwd}")
             self.pdf = (
                 pdfplumber.open(file, password=pwd) if pwd else pdfplumber.open(file)
             )
@@ -108,6 +109,7 @@ class MpesaStatementParser:
                     INTI_SUMMARY[key] = float(
                         row[col_index.get(col_name, -1)].replace(",", "") or 0
                     )
+        print(f"Debug 16")
         return AccountSummary(period=period, **INTI_SUMMARY)
 
     def get_transaction(self) -> List[List[List[str]]]:
